@@ -40,7 +40,7 @@ class WorkerManager
             }
             if (false === file_exists($file)) {
                 $response = <<<RESPONSE
-HTTP/1.0 404 NOT FOUND
+HTTP/1.0 404 Not Found
 Content-Type: text/plain
 Connection: close
 
@@ -49,11 +49,27 @@ RESPONSE;
                 socket_write($receiver->_socket, $response);
                 socket_close($receiver->_socket);
                 return;
+            } else if (fale === is_file($file)) {
+                $response = <<<RESPONSE
+HTTP/1.0 403 Forbidden
+Content-Type: text/plain
+Connection: close
+
+403 Beat Forbidden.
+RESPONSE;
+                socket_write($receiver->_socket, $response);
+                socket_close($receiver->_socket);
+                return;
             }
             if (preg_match('/\.php$/', $file)) {
                 $file = "$php_bin $file";
             } else {
-                $file = "echo \"<?php print file_get_contents('$file');\" | $php_bin";
+
+                if (preg_match('/^WIN/', PHP_OS)) {
+                    $file = "type $file";
+                } else {
+                    $file = "cat $file";
+                }
             }
         }
         $file = str_replace('/', DIRECTORY_SEPARATOR, $file);
@@ -72,15 +88,12 @@ RESPONSE;
             foreach ($r as $stream) {
                 while ($read = fread($stream, 1024)) {
                     fwrite($tmp, $read);
-                    //socket_write($receiver->_socket, $read);
                 }
             }
             $status = proc_get_status($process);
             if (!($status && $status['running'])) {
-                $content_length = ftell($tmp);
                 fseek($tmp, 0);
                 $test = fread($tmp, 13);
-                $has_header = false;
                 if (0 === preg_match('|^HTTP/\\d\\.\\d \\d{3} $|', $test)) {
                     if ($status['exitcode']) {
                         socket_write($receiver->_socket, "HTTP/1.0 500 Internal Server Error\r\n");
@@ -92,9 +105,14 @@ RESPONSE;
                     socket_write($receiver->_socket, "Connection: close\r\n");
                     socket_write($receiver->_socket, "\r\n");
                 }
-                socket_write($receiver->_socket, $test);
+                $buf_buf = socket_write($receiver->_socket, $test);
                 while ($buf = fread($tmp, 1024)) {
-                    socket_write($receiver->_socket, $buf);
+                    $res = @socket_write($receiver->_socket, $buf_buf . $buf);
+                    if (false === $res) {
+                        $buf_buf .= $buf;
+                    } else {
+                        $buf_buf = "";
+                    }
                 }
                 break;
             }
