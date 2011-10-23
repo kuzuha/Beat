@@ -64,7 +64,6 @@ RESPONSE;
             if (preg_match('/\.php$/', $file)) {
                 $file = "$php_bin $file";
             } else {
-
                 if (preg_match('/^WIN/', PHP_OS)) {
                     $file = "type $file";
                 } else {
