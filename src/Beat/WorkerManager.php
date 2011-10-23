@@ -18,9 +18,9 @@ class WorkerManager
         );
         $env = array(
             'beat_version' => Runner::BEAT_VERSION,
-            'beat_handler' => 'eight-beat',
             'beat_headers' => serialize($receiver->_headers),
-        ) + $_ENV;
+            'REQUEST_METHOD' => $receiver->_headers['method'],
+        );
 
         $uri = $receiver->_headers['uri'];
         if (self::$_router) {
