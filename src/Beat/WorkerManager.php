@@ -49,7 +49,7 @@ RESPONSE;
                 socket_write($receiver->_socket, $response);
                 socket_close($receiver->_socket);
                 return;
-            } else if (fale === is_file($file)) {
+            } else if (false === is_file($file)) {
                 $response = <<<RESPONSE
 HTTP/1.0 403 Forbidden
 Content-Type: text/plain
